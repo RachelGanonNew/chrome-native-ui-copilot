@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Copilot Demo - Intentionally Broken UI</title>
+    <style>
+        /* Intentionally problematic styles for demo */
+        body {
+            font-family: Arial;
+            margin: 0;
+            background: #f0f0f0;
+            color: #ccc; /* Low contrast */
+        }
+        
+        .header {
+            background: #ddd;
+            padding: 5px; /* Poor spacing */
+            color: #eee; /* Very low contrast */
+            text-align: left; /* Misaligned */
+        }
+        
+        .container {
+            width: 1200px; /* Not responsive */
+            margin: 0;
+            padding: 10px;
+            overflow: visible; /* Will cause overflow */
+        }
+        
+        .button {
+            background: #f5f5f5;
+            color: #ddd; /* Low contrast */
+            padding: 2px 5px; /* Too small for mobile */
+            border: none;
+            font-size: 10px; /* Too small */
+            margin: 2px;
+        }
+        
+        .form-group {
+            margin: 5px 0;
+        }
+        
+        .form-group input {
+            width: 800px; /* Will overflow on mobile */
+            padding: 3px;
+            border: 1px solid #eee;
+            font-size: 11px; /* Too small */
+        }
+        
+        .sidebar {
+            position: absolute;
+            left: -50px; /* Misaligned */
+            width: 200px;
+            background: #fff;
+            padding: 10px;
+        }
+        
+        .content {
+            margin-left: 0; /* Poor layout */
+            padding: 5px;
+        }
+        
+        .image-container img {
+            width: 1000px; /* Will cause horizontal scroll */
+            height: auto;
+        }
+        
+        .text-block {
+            line-height: 1.1; /* Poor readability */
+            font-size: 12px;
+            color: #bbb; /* Low contrast */
+        }
+        
+        .cta-button {
+            background: #e0e0e0;
+            color: #ccc; /* Poor CTA visibility */
+            padding: 4px 8px; /* Too small */
+            text-decoration: none;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        
+        .navigation {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .navigation li {
+            display: inline;
+            margin-right: 5px;
+        }
+        
+        .navigation a {
+            color: #ddd; /* Low contrast */
+            text-decoration: none;
+            font-size: 11px; /* Too small */
+            padding: 2px 4px; /* Too small touch target */
+        }
+        
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #f8f8f8;
+            color: #ccc; /* Low contrast */
+            padding: 10px;
+            border: 1px solid #eee;
+            z-index: 1000;
+        }
+        
+        .accessibility-issues {
+            /* Missing alt text, no ARIA labels, poor focus indicators */
+        }
+        
+        .mobile-unfriendly {
+            min-width: 800px; /* Not mobile friendly */
+            font-size: 10px; /* Too small for mobile */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to Our Broken Website</h1>
+        <p>This page has intentional UI/UX issues for the Chrome Native UI Copilot to detect and fix!</p>
+    </div>
+
+    <div class="container">
+        <nav>
+            <ul class="navigation">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <li><a href="#services">Services</a></li>
+            </ul>
+        </nav>
+
+        <div class="sidebar">
+            <h3>Sidebar Content</h3>
+            <p class="text-block">This sidebar is positioned incorrectly and will cause layout issues. The text is also hard to read due to poor contrast and line spacing.</p>
+            
+            <button class="button">Tiny Button</button>
+            <button class="button">Another Small Button</button>
+        </div>
+
+        <div class="content">
+            <h2>Main Content Area</h2>
+            
+            <div class="form-group">
+                <label>Name:</label>
+                <input type="text"> <!-- No placeholder, poor UX -->
+            </div>
+            
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email"> <!-- No placeholder -->
+            </div>
+            
+            <div class="form-group">
+                <button class="button">Submit Form</button> <!-- Poor CTA -->
+            </div>
+
+            <div class="image-container">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIyMDAiIHZpZXdCb3g9IjAgMCAxMDAwIDIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNkZGQiLz4KICA8dGV4dCB4PSI1MDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTk5Ij5XaWRlIEltYWdlIC0gV2lsbCBDYXVzZSBPdmVyZmxvdzwvdGV4dD4KPC9zdmc+" alt=""> <!-- Missing alt text -->
+            </div>
+
+            <div class="text-block">
+                <p>This is a paragraph with poor readability. The line height is too tight, the font size is too small, and the contrast is insufficient for accessibility standards. Users with visual impairments will struggle to read this content.</p>
+                
+                <p>Additionally, this content doesn't follow proper semantic HTML structure and lacks proper heading hierarchy.</p>
+            </div>
+
+            <a href="#" class="cta-button">Weak Call to Action</a>
+
+            <div class="mobile-unfriendly">
+                <h3>Mobile Unfriendly Section</h3>
+                <p>This section has a minimum width that will break on mobile devices. The font size is also too small for mobile users.</p>
+                
+                <button class="button">Tiny Mobile Button</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" style="display: none;" id="demo-modal">
+        <h3>Modal Dialog</h3>
+        <p>This modal has accessibility issues - no focus management, poor contrast, and missing ARIA attributes.</p>
+        <button class="button">Close</button>
+    </div>
+
+    <script>
+        // Show modal for demo
+        setTimeout(() => {
+            document.getElementById('demo-modal').style.display = 'block';
+        }, 2000);
+
+        // Add some interactive elements with poor UX
+        document.querySelectorAll('.button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('Button clicked! (Poor UX - should use better feedback)');
+            });
+        });
+
+        // Simulate some dynamic content that might cause layout shifts
+        setTimeout(() => {
+            const newContent = document.createElement('div');
+            newContent.innerHTML = '<p style="color: #ddd; font-size: 10px;">Dynamically loaded content that causes layout shift!</p>';
+            document.querySelector('.content').appendChild(newContent);
+        }, 3000);
+    </script>
+
+    <!-- Instructions for testing -->
+    <div style="position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 12px; z-index: 10000;">
+        <strong>🤖 Test the UI Copilot:</strong><br>
+        1. Click the extension icon<br>
+        2. Click "Scan Page"<br>
+        3. Right-click elements for context menu<br>
+        4. Open DevTools → UI Copilot panel<br>
+        5. Watch AI detect and fix issues!
+    </div>
+</body>
+</html>

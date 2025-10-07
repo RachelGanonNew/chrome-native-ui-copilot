@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .tagline {
+      color: #666;
+      font-size: 14px;
+    }
+    .stats {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .primary {
+      background: #007bff;
+      color: white;
+    }
+    .secondary {
+      background: #6c757d;
+      color: white;
+    }
+    .primary:hover {
+      background: #0056b3;
+    }
+    .secondary:hover {
+      background: #545b62;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🤖 UI Copilot</div>
+    <div class="tagline">AI-powered UI issue detection & auto-fix</div>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-item">
+      <span>Issues Found:</span>
+      <span id="issues-count">0</span>
+    </div>
+    <div class="stat-item">
+      <span>Auto-Fixed:</span>
+      <span id="fixed-count">0</span>
+    </div>
+    <div class="stat-item">
+      <span>AI Status:</span>
+      <span id="ai-status">Checking...</span>
+    </div>
+  </div>
+  
+  <div class="actions">
+    <button class="primary" id="scan-btn">Scan Page</button>
+    <button class="secondary" id="settings-btn">Settings</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

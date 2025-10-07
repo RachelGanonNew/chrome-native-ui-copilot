@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Native UI Copilot",
+  "version": "1.0",
+  "description": "AI-powered UI issue detection and auto-fix using Chrome's built-in AI",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "contextMenus",
+    "aiLanguageModelOriginTrial"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["copilot.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "UI Copilot",
+    "default_icon": {
+      "16": "icon.svg",
+      "32": "icon.svg",
+      "48": "icon.svg",
+      "128": "icon.svg"
+    }
+  },
+  "icons": {
+    "16": "icon.svg",
+    "32": "icon.svg",
+    "48": "icon.svg",
+    "128": "icon.svg"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["copilot.css", "devtools.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "devtools_page": "devtools.html"
+}

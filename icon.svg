@@ -1,0 +1,30 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#007bff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0056b3;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#bg)" stroke="#fff" stroke-width="4"/>
+  
+  <!-- Robot head -->
+  <rect x="40" y="35" width="48" height="40" rx="8" fill="#fff"/>
+  
+  <!-- Eyes -->
+  <circle cx="52" cy="50" r="4" fill="#007bff"/>
+  <circle cx="76" cy="50" r="4" fill="#007bff"/>
+  
+  <!-- Mouth -->
+  <rect x="56" y="62" width="16" height="2" rx="1" fill="#007bff"/>
+  
+  <!-- UI elements -->
+  <rect x="25" y="85" width="78" height="8" rx="2" fill="#fff" opacity="0.9"/>
+  <rect x="25" y="98" width="45" height="6" rx="1" fill="#fff" opacity="0.7"/>
+  <rect x="25" y="108" width="60" height="6" rx="1" fill="#fff" opacity="0.7"/>
+  
+  <!-- Fix indicator -->
+  <circle cx="100" cy="88" r="8" fill="#28a745"/>
+  <path d="M96 88 L99 91 L104 85" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

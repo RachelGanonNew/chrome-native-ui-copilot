@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .primary { background: #007bff; color: white; }
+    .secondary { background: #6c757d; color: white; }
+    .success { background: #28a745; color: white; }
+    .issues-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .issue-card {
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      margin: 10px 0;
+      padding: 15px;
+    }
+    .issue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .severity-high { border-left: 4px solid #dc3545; }
+    .severity-medium { border-left: 4px solid #ffc107; }
+    .severity-low { border-left: 4px solid #28a745; }
+    .code-diff {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🤖 Chrome Native UI Copilot</h1>
+    <p>AI-powered UI issue detection and auto-fix using Gemini Nano</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-number" id="total-issues">0</div>
+      <div>Issues Found</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="fixed-issues">0</div>
+      <div>Auto-Fixed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="lighthouse-score">-</div>
+      <div>Lighthouse Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="ai-status">🔄</div>
+      <div>AI Status</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="scan-page">🔍 Scan Page</button>
+    <button class="secondary" id="run-lighthouse">📊 Run Lighthouse</button>
+    <button class="success" id="auto-fix-all">⚡ Auto-Fix All</button>
+    <button class="secondary" id="export-report">📄 Export Report</button>
+  </div>
+
+  <div class="issues-container">
+    <h3>Detected Issues</h3>
+    <div id="issues-list">
+      <p>Click "Scan Page" to detect UI issues...</p>
+    </div>
+  </div>
+
+  <script src="devtools-panel.js"></script>
+</body>
+</html>

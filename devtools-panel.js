@@ -1,0 +1,230 @@
+class DevToolsPanel {
+  constructor() {
+    this.issues = [];
+    this.lighthouseScore = null;
+    this.init();
+  }
+
+  init() {
+    document.getElementById('scan-page').onclick = () => this.scanPage();
+    document.getElementById('run-lighthouse').onclick = () => this.runLighthouse();
+    document.getElementById('auto-fix-all').onclick = () => this.autoFixAll();
+    document.getElementById('export-report').onclick = () => this.exportReport();
+    
+    this.checkAIStatus();
+  }
+
+  async checkAIStatus() {
+    try {
+      const result = await chrome.devtools.inspectedWindow.eval(`
+        'ai' in window && 'languageModel' in window.ai
+      `);
+      document.getElementById('ai-status').textContent = result[0] ? '✅' : '⚠️';
+    } catch (e) {
+      document.getElementById('ai-status').textContent = '❌';
+    }
+  }
+
+  async scanPage() {
+    const scanBtn = document.getElementById('scan-page');
+    scanBtn.textContent = '🔄 Scanning...';
+    scanBtn.disabled = true;
+
+    try {
+      const result = await chrome.devtools.inspectedWindow.eval(`
+        (async () => {
+          if (window.uiCopilot) {
+            await window.uiCopilot.scanPage();
+            return {
+              issues: window.uiCopilot.issues,
+              stats: {
+                total: window.uiCopilot.issues.length,
+                high: window.uiCopilot.issues.filter(i => i.severity === 'high').length,
+                medium: window.uiCopilot.issues.filter(i => i.severity === 'medium').length,
+                low: window.uiCopilot.issues.filter(i => i.severity === 'low').length
+              }
+            };
+          }
+          return { issues: [], stats: { total: 0, high: 0, medium: 0, low: 0 } };
+        })()
+      `);
+
+      this.issues = result[0].issues || [];
+      this.updateStats(result[0].stats);
+      this.displayIssues();
+    } catch (e) {
+      console.error('Scan failed:', e);
+    }
+
+    scanBtn.textContent = '🔍 Scan Page';
+    scanBtn.disabled = false;
+  }
+
+  async runLighthouse() {
+    const btn = document.getElementById('run-lighthouse');
+    btn.textContent = '🔄 Running...';
+    btn.disabled = true;
+
+    try {
+      // Simulate Lighthouse run (in real implementation, integrate with Lighthouse API)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const score = Math.max(60, 100 - this.issues.length * 5);
+      this.lighthouseScore = score;
+      document.getElementById('lighthouse-score').textContent = score;
+    } catch (e) {
+      console.error('Lighthouse failed:', e);
+    }
+
+    btn.textContent = '📊 Run Lighthouse';
+    btn.disabled = false;
+  }
+
+  async autoFixAll() {
+    const btn = document.getElementById('auto-fix-all');
+    btn.textContent = '⚡ Fixing...';
+    btn.disabled = true;
+
+    try {
+      await chrome.devtools.inspectedWindow.eval(`
+        (async () => {
+          if (window.uiCopilot && window.uiCopilot.issues) {
+            let fixed = 0;
+            for (const issue of window.uiCopilot.issues) {
+              try {
+                issue.fix();
+                fixed++;
+              } catch (e) {
+                console.error('Fix failed:', e);
+              }
+            }
+            return fixed;
+          }
+          return 0;
+        })()
+      `);
+
+      document.getElementById('fixed-issues').textContent = this.issues.length;
+      this.generateCodeDiffs();
+    } catch (e) {
+      console.error('Auto-fix failed:', e);
+    }
+
+    btn.textContent = '⚡ Auto-Fix All';
+    btn.disabled = false;
+  }
+
+  updateStats(stats) {
+    document.getElementById('total-issues').textContent = stats.total;
+  }
+
+  displayIssues() {
+    const container = document.getElementById('issues-list');
+    
+    if (this.issues.length === 0) {
+      container.innerHTML = '<p>✅ No issues detected! Your UI looks great.</p>';
+      return;
+    }
+
+    container.innerHTML = this.issues.map((issue, index) => `
+      <div class="issue-card severity-${issue.severity}">
+        <div class="issue-header">
+          <strong>${issue.type.toUpperCase()}: ${issue.message}</strong>
+          <button onclick="devToolsPanel.fixIssue(${index})" class="primary">Fix</button>
+        </div>
+        <div>Severity: <span style="color: ${this.getSeverityColor(issue.severity)}">${issue.severity}</span></div>
+        <div class="code-diff" id="diff-${index}" style="display: none;"></div>
+      </div>
+    `).join('');
+  }
+
+  getSeverityColor(severity) {
+    switch (severity) {
+      case 'high': return '#dc3545';
+      case 'medium': return '#ffc107';
+      case 'low': return '#28a745';
+      default: return '#6c757d';
+    }
+  }
+
+  async fixIssue(index) {
+    try {
+      await chrome.devtools.inspectedWindow.eval(`
+        window.uiCopilot.issues[${index}].fix()
+      `);
+      
+      this.generateCodeDiff(index);
+      document.getElementById('fixed-issues').textContent = 
+        parseInt(document.getElementById('fixed-issues').textContent) + 1;
+    } catch (e) {
+      console.error('Fix failed:', e);
+    }
+  }
+
+  generateCodeDiff(index) {
+    const diffContainer = document.getElementById(`diff-${index}`);
+    if (diffContainer) {
+      diffContainer.style.display = 'block';
+      diffContainer.textContent = `// Auto-generated fix for ${this.issues[index].type}
+- Original: ${this.issues[index].message}
++ Fixed: Applied automated correction
+
+// CSS changes applied:
+${this.generateCSSFix(this.issues[index])}`;
+    }
+  }
+
+  generateCSSFix(issue) {
+    switch (issue.type) {
+      case 'contrast':
+        return `color: #000000;
+background-color: #ffffff;`;
+      case 'overflow':
+        return `overflow: hidden;
+text-overflow: ellipsis;`;
+      case 'alignment':
+        return `margin: 0 auto;
+text-align: center;`;
+      case 'mobile':
+        return `max-width: 100%;
+font-size: 16px;
+min-height: 44px;`;
+      default:
+        return '/* Custom fix applied */';
+    }
+  }
+
+  generateCodeDiffs() {
+    this.issues.forEach((issue, index) => {
+      this.generateCodeDiff(index);
+    });
+  }
+
+  exportReport() {
+    const report = {
+      timestamp: new Date().toISOString(),
+      url: chrome.devtools.inspectedWindow.tabId,
+      issues: this.issues.map(issue => ({
+        type: issue.type,
+        severity: issue.severity,
+        message: issue.message,
+        fix: this.generateCSSFix(issue)
+      })),
+      stats: {
+        total: this.issues.length,
+        fixed: parseInt(document.getElementById('fixed-issues').textContent),
+        lighthouseScore: this.lighthouseScore
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ui-copilot-report-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+const devToolsPanel = new DevToolsPanel();

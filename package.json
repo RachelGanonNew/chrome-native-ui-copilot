@@ -1,0 +1,62 @@
+{
+  "name": "chrome-native-ui-copilot",
+  "version": "1.0.0",
+  "description": "AI-powered UI issue detection and auto-fix using Chrome's built-in Gemini Nano",
+  "main": "background.js",
+  "scripts": {
+    "build": "echo 'No build step required for Chrome extension'",
+    "test": "echo 'Open demo.html in Chrome to test the extension'",
+    "lint": "echo 'Add ESLint configuration for code quality'",
+    "package": "zip -r chrome-ui-copilot.zip . -x '*.git*' 'node_modules/*' '*.DS_Store*'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ui-ux",
+    "accessibility",
+    "ai",
+    "gemini-nano",
+    "web-development",
+    "automation",
+    "devtools",
+    "hackathon"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/chrome-native-ui-copilot"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/chrome-native-ui-copilot/issues"
+  },
+  "homepage": "https://github.com/your-username/chrome-native-ui-copilot#readme",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "chrome": ">=120.0.0"
+  },
+  "manifest": {
+    "version": 3,
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "storage",
+      "contextMenus",
+      "aiLanguageModelOriginTrial"
+    ]
+  },
+  "hackathon": {
+    "event": "Google Chrome AI Challenge 2025",
+    "submission_url": "https://googlechromeai2025.devpost.com/",
+    "category": "AI-Powered Developer Tools",
+    "features": [
+      "Real-time UI audit",
+      "Instant auto-fixes",
+      "Chrome DevTools integration",
+      "Offline Gemini Nano",
+      "Accessibility compliance",
+      "Mobile responsiveness",
+      "Performance optimization"
+    ]
+  }
+}
