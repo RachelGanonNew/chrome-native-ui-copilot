@@ -16,6 +16,14 @@ class UICopilot {
     this.designTokens = this.scanDesignTokens();
     this.createScoreBadge();
     await this.loadTokenAliases();
+    try {
+      if (typeof URLSearchParams !== 'undefined') {
+        const params = new URLSearchParams(location.search || '');
+        if (params.get('autodemo') === '1') {
+          setTimeout(() => this.startGuidedDemo(), 600);
+        }
+      }
+    } catch (e) { /* ignore */ }
   }
 
   async initAI() {
@@ -700,6 +708,59 @@ Context: This element is on a ${platform} website. Check for accessibility, perf
     const badge = document.getElementById('ui-copilot-score');
     if (!badge) return;
     badge.textContent = `UI Copilot: ${found} found · ${fixed} fixed`;
+  }
+
+  // === Guided Demo ===
+  async startGuidedDemo() {
+    // lightweight on-page helper overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'ui-copilot-demo';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '12px';
+    overlay.style.bottom = '12px';
+    overlay.style.zIndex = '2147483647';
+    overlay.style.background = 'rgba(0,0,0,0.8)';
+    overlay.style.color = '#fff';
+    overlay.style.padding = '10px 12px';
+    overlay.style.borderRadius = '10px';
+    overlay.style.fontFamily = 'system-ui, sans-serif';
+    overlay.style.fontSize = '12px';
+    overlay.textContent = 'Starting demo…';
+    document.body.appendChild(overlay);
+
+    const step = async (text, fn, waitMs = 1200) => {
+      overlay.textContent = text;
+      try { await fn?.(); } catch (e) {}
+      await new Promise(r => setTimeout(r, waitMs));
+    };
+
+    await step('Step 1/5: Scanning page for issues…', async () => {
+      await this.scanPage();
+    }, 1600);
+
+    await step('Step 2/5: Visualizing targets…', async () => {
+      try { window.visualInspector?.toggle?.(); } catch (e) {}
+    });
+
+    await step('Step 3/5: Applying a few instant fixes…', async () => {
+      const fixes = (this.issues || []).slice(0, 5);
+      for (const issue of fixes) {
+        try { typeof issue.fix === 'function' && issue.fix(); } catch (e) {}
+      }
+    }, 1400);
+
+    await step('Step 4/5: Exporting fixes to a shareable macro…', async () => {
+      try {
+        const json = this.exportFixes();
+        // store in window for quick replay in the same session
+        window.__uiCopilotLastExport = json;
+      } catch (e) {}
+    }, 1000);
+
+    await step('Step 5/5: Replay macro after reload (optional)…', () => {}, 1000);
+
+    overlay.textContent = 'Demo complete! Open DevTools → UI Copilot/Design Tokens for more.';
+    setTimeout(() => overlay.remove(), 3500);
   }
 
   // === Token Aliases (per-domain) ===

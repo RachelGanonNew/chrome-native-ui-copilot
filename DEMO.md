@@ -36,3 +36,18 @@ Use Chrome Dev/Canary with Gemini Nano flags enabled. Load the extension (unpack
 Tips
 - Keep pace brisk. Use zoom on badge and panels.
 - Optional: show Lighthouse score bump in the Copilot panel.
+
+---
+
+## 75s Voiceover Timing (reference)
+- 0:00–0:05 — Hook line.
+- 0:05–0:15 — Scan Page; show badge updating.
+- 0:15–0:30 — Visualize on; two click-to-fix actions.
+- 0:30–0:40 — Autopilot on; hover section; accept fix.
+- 0:40–0:55 — Export; reload; Replay.
+- 0:55–1:05 — DevTools → UI Copilot → Auto-Fix All + diffs.
+- 1:05–1:15 — DevTools → Design Tokens; alias + tweak.
+- 1:15–1:20 — Close line.
+
+## Autoplay option
+- Append `?autodemo=1` to the page URL (e.g., `demo.html?autodemo=1`) to run a guided on-page overlay that steps through the flow automatically.
