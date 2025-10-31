@@ -577,6 +577,21 @@ Context: This element is on a ${platform} website. Check for accessibility, perf
     return parts.join(' > ');
   }
 
+  // Convenience: scan and apply all fixes, return counts
+  async fixAllIssues() {
+    try {
+      await this.scanPage();
+      let applied = 0;
+      for (const issue of this.issues) {
+        try { if (typeof issue.fix === 'function') { issue.fix(); applied++; } } catch (e) {}
+      }
+      this.updateScoreBadge(this.issues.length, this.fixedCount);
+      return { total: this.issues.length, fixed: applied };
+    } catch (e) {
+      return { total: 0, fixed: 0 };
+    }
+  }
+
   // === Design System Alignment ===
   toggleDesignSystemMode() {
     this.designSystemMode = !this.designSystemMode;

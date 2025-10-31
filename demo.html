@@ -249,6 +249,27 @@
         const downloadBefore = document.getElementById('download-before');
         const downloadAfter = document.getElementById('download-after');
 
+        function hideExtensionUI() {
+            const ids = [
+                'ui-copilot-score','ui-copilot-panel','copilot-visual-container','copilot-eyes-container'
+            ];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.dataset._demoHidden) {
+                    el.dataset._demoHidden = el.style.display || '';
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        function restoreExtensionUI() {
+            document.querySelectorAll('[data-_demoHidden]').forEach(el => {
+                const prev = el.dataset._demoHidden;
+                el.style.display = prev;
+                delete el.dataset._demoHidden;
+            });
+        }
+
         function cleanClone(docEl){
             const clone = docEl.cloneNode(true);
             // remove scripts and demo controls
@@ -332,6 +353,7 @@
             status.textContent = 'Capturing "before" snapshot...';
             runBtn.disabled = true;
             try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
+            hideExtensionUI();
             try{
                 const beforeData = await serializeToDataURL(document.documentElement);
                 beforeImg.src = beforeData;
@@ -339,9 +361,8 @@
 
                 status.textContent = 'Running fixes...';
                 // Try to run extension fix-all if available
-                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
-                    await window.uiCopilot.scanPage();
-                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
+                    await window.uiCopilot.fixAllIssues();
                 } else {
                     // Try messaging the extension via custom event for pages where extension is the content script
                     console.warn('uiCopilot not available in page context');
@@ -404,6 +425,7 @@
                 status.textContent = 'Demo failed: ' + (err && err.message ? err.message : String(err));
             }finally{
                 runBtn.disabled = false;
+                setTimeout(restoreExtensionUI, 500);
             }
         }
 
@@ -482,6 +504,7 @@
             status.textContent = 'Preparing run & record...';
             try{
                 try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
+                hideExtensionUI();
                 // before
                 status.textContent = 'Capturing before snapshot...';
                 const beforeData = await serializeToDataURL(document.documentElement);
@@ -524,9 +547,8 @@
 
                 // apply fixes while recording
                 status.textContent = 'Applying fixes while recording...';
-                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
-                    await window.uiCopilot.scanPage();
-                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
+                    await window.uiCopilot.fixAllIssues();
                 } else {
                     console.warn('uiCopilot not available in page context');
                 }
@@ -599,6 +621,7 @@
                 status.textContent = 'Run & Record failed: ' + (err && err.message ? err.message : String(err));
             }finally{
                 runRecordBtn.disabled = false;
+                setTimeout(restoreExtensionUI, 500);
             }
         });
     })();
