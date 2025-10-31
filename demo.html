@@ -110,9 +110,7 @@
             z-index: 1000;
         }
         
-        .accessibility-issues {
-            /* Missing alt text, no ARIA labels, poor focus indicators */
-        }
+        .accessibility-issues { outline: none; }
         
         .mobile-unfriendly {
             min-width: 800px; /* Not mobile friendly */
@@ -286,6 +284,10 @@
             }catch(e){ console.warn('inlineComputedStyles failed', e); }
         }
 
+        function safeCanvasToDataURL(canvas){
+            try { return canvas.toDataURL('image/png'); } catch (e) { return null; }
+        }
+
         function serializeToDataURL(el){
             return new Promise((resolve, reject) => {
                 try{
@@ -310,7 +312,9 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0);
                             URL.revokeObjectURL(url);
-                            resolve(canvas.toDataURL('image/png'));
+                            const data = safeCanvasToDataURL(canvas);
+                            if (!data) return reject(new Error('Canvas export blocked by cross-origin content'));
+                            resolve(data);
                         }catch(err){ URL.revokeObjectURL(url); reject(err); }
                     };
                     img.onerror = function(e){ URL.revokeObjectURL(url); reject(e); };
@@ -323,6 +327,7 @@
             results.style.display = 'none';
             status.textContent = 'Capturing "before" snapshot...';
             runBtn.disabled = true;
+            try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
             try{
                 const beforeData = await serializeToDataURL(document.documentElement);
                 beforeImg.src = beforeData;
@@ -359,7 +364,8 @@
                         ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cw,ch);
                         ctx.drawImage(imgA, 0, 0);
                         ctx.drawImage(imgB, imgA.width, 0);
-                        const combined = canvas.toDataURL('image/png');
+                        const combined = safeCanvasToDataURL(canvas);
+                        if (!combined) { console.warn('combined image export blocked'); return; }
                         // create a temporary link for combined download
                         let combinedLink = document.getElementById('download-combined');
                         if(!combinedLink){
@@ -465,6 +471,7 @@
             runRecordBtn.disabled = true;
             status.textContent = 'Preparing run & record...';
             try{
+                try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
                 // before
                 status.textContent = 'Capturing before snapshot...';
                 const beforeData = await serializeToDataURL(document.documentElement);
@@ -550,7 +557,8 @@
                         ct.fillStyle = '#fff'; ct.fillRect(0,0,cw,ch);
                         ct.drawImage(imgA, 0, 0);
                         ct.drawImage(imgB, imgA.width, 0);
-                        const combined = c.toDataURL('image/png');
+                        const combined = safeCanvasToDataURL(c);
+                        if (!combined) { console.warn('combined image export blocked'); return; }
                         let combinedLink = document.getElementById('download-combined');
                         if(!combinedLink){
                             combinedLink = document.createElement('a');
@@ -582,7 +590,7 @@
     </script>
 
     <!-- Instructions for testing -->
-    <div style="position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 12px; z-index: 10000;">
+    <div id="demo-instructions" style="position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 12px; z-index: 10000;">
         <strong>🤖 Test the UI Copilot:</strong><br>
         1. Click the extension icon<br>
         2. Click "Scan Page"<br>

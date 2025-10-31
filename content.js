@@ -761,6 +761,8 @@ Context: This element is on a ${platform} website. Check for accessibility, perf
 
     overlay.textContent = 'Demo complete! Open DevTools → UI Copilot/Design Tokens for more.';
     setTimeout(() => overlay.remove(), 3500);
+    // clean up score badge if present
+    try { const b = document.getElementById('ui-copilot-score'); if (b) b.remove(); } catch (e) {}
   }
 
   // === Token Aliases (per-domain) ===
