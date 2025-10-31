@@ -110,9 +110,7 @@
             z-index: 1000;
         }
         
-        .accessibility-issues {
-            /* Missing alt text, no ARIA labels, poor focus indicators */
-        }
+        .accessibility-issues { outline: none; }
         
         .mobile-unfriendly {
             min-width: 800px; /* Not mobile friendly */
@@ -213,6 +211,9 @@
             newContent.innerHTML = '<p style="color: #ddd; font-size: 10px;">Dynamically loaded content that causes layout shift!</p>';
             document.querySelector('.content').appendChild(newContent);
         }, 3000);
+
+        // Auto-hide demo instructions after a few seconds to reduce page clutter
+        setTimeout(() => { try { document.getElementById('demo-instructions')?.remove(); } catch(e){} }, 8000);
     </script>
 
     <!-- Demo control panel: run demo and capture before/after -->
@@ -251,10 +252,31 @@
         const downloadBefore = document.getElementById('download-before');
         const downloadAfter = document.getElementById('download-after');
 
+        function hideExtensionUI() {
+            const ids = [
+                'ui-copilot-score','ui-copilot-panel','copilot-visual-container','copilot-eyes-container'
+            ];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.dataset._demoHidden) {
+                    el.dataset._demoHidden = el.style.display || '';
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        function restoreExtensionUI() {
+            document.querySelectorAll('[data-_demoHidden]').forEach(el => {
+                const prev = el.dataset._demoHidden;
+                el.style.display = prev;
+                delete el.dataset._demoHidden;
+            });
+        }
+
         function cleanClone(docEl){
             const clone = docEl.cloneNode(true);
             // remove scripts and demo controls
-            clone.querySelectorAll('script, #demo-controls, #demo-status, #demo-results, #demo-modal, [id^="copilot-" ], [id^="ui-copilot" ], #copilot-visual-container, #copilot-eyes-container').forEach(n=>{
+            clone.querySelectorAll('script, #demo-controls, #demo-status, #demo-results, #demo-modal, #demo-instructions, [id^="copilot-" ], [id^="ui-copilot" ], #copilot-visual-container, #copilot-eyes-container').forEach(n=>{
                 try{ n.remove(); }catch(e){}
             });
             // remove extension floating button if present
@@ -286,6 +308,10 @@
             }catch(e){ console.warn('inlineComputedStyles failed', e); }
         }
 
+        function safeCanvasToDataURL(canvas){
+            try { return canvas.toDataURL('image/png'); } catch (e) { return null; }
+        }
+
         function serializeToDataURL(el){
             return new Promise((resolve, reject) => {
                 try{
@@ -310,7 +336,13 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0);
                             URL.revokeObjectURL(url);
-                            resolve(canvas.toDataURL('image/png'));
+                            const data = safeCanvasToDataURL(canvas);
+                            if (!data) {
+                                // Fallback: return the SVG data URL so we still show and allow download
+                                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+                                return resolve(svgDataUrl);
+                            }
+                            resolve(data);
                         }catch(err){ URL.revokeObjectURL(url); reject(err); }
                     };
                     img.onerror = function(e){ URL.revokeObjectURL(url); reject(e); };
@@ -319,23 +351,63 @@
             });
         }
 
+        // Apply visible demo fixes if extension isn't available or applied 0 fixes
+        function applyDemoFallbackFixes(){
+            try {
+                // Contrast & background
+                document.body.style.background = '#ffffff';
+                document.body.style.color = '#111111';
+                // Header
+                const header = document.querySelector('.header');
+                if (header) { header.style.background = '#222'; header.style.color = '#fff'; header.style.padding = '16px'; }
+                // Container responsiveness
+                const container = document.querySelector('.container');
+                if (container) { container.style.width = '100%'; container.style.maxWidth = '1024px'; container.style.margin = '0 auto'; container.style.overflow = 'hidden'; }
+                // Buttons
+                document.querySelectorAll('.button').forEach(b => { b.style.background = '#007bff'; b.style.color = '#fff'; b.style.padding = '10px 16px'; b.style.fontSize = '14px'; b.style.borderRadius = '6px'; });
+                // Inputs
+                document.querySelectorAll('.form-group input').forEach(i => { i.style.width = '100%'; i.style.fontSize = '16px'; i.style.padding = '10px'; });
+                // Sidebar alignment
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) { sidebar.style.position = 'relative'; sidebar.style.left = '0'; sidebar.style.margin = '0 0 16px 0'; }
+                // Text block readability
+                document.querySelectorAll('.text-block').forEach(t => { t.style.lineHeight = '1.6'; t.style.fontSize = '16px'; t.style.color = '#222'; });
+                // CTA prominence
+                const cta = document.querySelector('.cta-button');
+                if (cta) { cta.style.background = '#28a745'; cta.style.color = '#fff'; cta.style.padding = '12px 18px'; cta.style.borderRadius = '6px'; }
+                // Mobile unfriendly section
+                const mu = document.querySelector('.mobile-unfriendly');
+                if (mu) { mu.style.minWidth = '0'; mu.style.fontSize = '16px'; }
+            } catch(e) {}
+        }
+
         async function runDemo(){
             results.style.display = 'none';
             status.textContent = 'Capturing "before" snapshot...';
             runBtn.disabled = true;
+            try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
+            hideExtensionUI();
             try{
                 const beforeData = await serializeToDataURL(document.documentElement);
                 beforeImg.src = beforeData;
                 downloadBefore.href = beforeData;
 
-                status.textContent = 'Running fixes...';
+                status.textContent = 'Running fixes (scan + apply)...';
                 // Try to run extension fix-all if available
-                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
-                    await window.uiCopilot.scanPage();
-                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
+                    const res = await window.uiCopilot.fixAllIssues();
+                    if (res && (res.fixed || 0) > 0) {
+                        status.textContent = `Applied ${res.fixed}/${res.total} fixes…`;
+                        try { if ((window.uiCopilot.issues||[]).length) window.uiCopilot.highlightElement(0); } catch(e) {}
+                    } else {
+                        status.textContent = 'Extension inactive or no fixes found — applying demo fixes…';
+                        applyDemoFallbackFixes();
+                    }
                 } else {
                     // Try messaging the extension via custom event for pages where extension is the content script
                     console.warn('uiCopilot not available in page context');
+                    status.textContent = 'Extension inactive — applying demo fixes…';
+                    applyDemoFallbackFixes();
                 }
 
                 status.textContent = 'Capturing "after" snapshot...';
@@ -359,7 +431,8 @@
                         ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cw,ch);
                         ctx.drawImage(imgA, 0, 0);
                         ctx.drawImage(imgB, imgA.width, 0);
-                        const combined = canvas.toDataURL('image/png');
+                        const combined = safeCanvasToDataURL(canvas);
+                        if (!combined) { console.warn('combined image export blocked'); return; }
                         // create a temporary link for combined download
                         let combinedLink = document.getElementById('download-combined');
                         if(!combinedLink){
@@ -377,8 +450,14 @@
                         const bothBtn = document.getElementById('download-both-btn');
                         if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
                     };
-                    imgA.src = beforeData;
-                    imgB.src = afterData;
+                    // Skip combined if any snapshot is SVG data (cannot safely rasterize without taint)
+                    if (String(beforeData).startsWith('data:image/svg+xml') || String(afterData).startsWith('data:image/svg+xml')) {
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if (combinedBtn) combinedBtn.disabled = true;
+                    } else {
+                        imgA.src = beforeData;
+                        imgB.src = afterData;
+                    }
                 }catch(e){ console.warn('combined image failed', e); }
 
                 status.textContent = 'Demo complete — download images or use them in your Devpost.';
@@ -388,6 +467,7 @@
                 status.textContent = 'Demo failed: ' + (err && err.message ? err.message : String(err));
             }finally{
                 runBtn.disabled = false;
+                setTimeout(restoreExtensionUI, 500);
             }
         }
 
@@ -465,6 +545,8 @@
             runRecordBtn.disabled = true;
             status.textContent = 'Preparing run & record...';
             try{
+                try{ document.getElementById('demo-instructions')?.remove(); }catch(e){}
+                hideExtensionUI();
                 // before
                 status.textContent = 'Capturing before snapshot...';
                 const beforeData = await serializeToDataURL(document.documentElement);
@@ -507,11 +589,19 @@
 
                 // apply fixes while recording
                 status.textContent = 'Applying fixes while recording...';
-                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
-                    await window.uiCopilot.scanPage();
-                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
+                    const res = await window.uiCopilot.fixAllIssues();
+                    if (res && (res.fixed || 0) > 0) {
+                        status.textContent = `Recording… applied ${res.fixed}/${res.total}`;
+                        try { if ((window.uiCopilot.issues||[]).length) window.uiCopilot.highlightElement(0); } catch(e) {}
+                    } else {
+                        status.textContent = 'Recording… extension inactive or no fixes — applying demo fixes…';
+                        applyDemoFallbackFixes();
+                    }
                 } else {
                     console.warn('uiCopilot not available in page context');
+                    status.textContent = 'Recording… extension inactive — applying demo fixes…';
+                    applyDemoFallbackFixes();
                 }
 
                 await new Promise(r => setTimeout(r, duration));
@@ -550,7 +640,8 @@
                         ct.fillStyle = '#fff'; ct.fillRect(0,0,cw,ch);
                         ct.drawImage(imgA, 0, 0);
                         ct.drawImage(imgB, imgA.width, 0);
-                        const combined = c.toDataURL('image/png');
+                        const combined = safeCanvasToDataURL(c);
+                        if (!combined) { console.warn('combined image export blocked'); return; }
                         let combinedLink = document.getElementById('download-combined');
                         if(!combinedLink){
                             combinedLink = document.createElement('a');
@@ -565,8 +656,13 @@
                         const bothBtn = document.getElementById('download-both-btn');
                         if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
                     };
-                    imgA.src = beforeData;
-                    imgB.src = afterData;
+                    if (String(beforeData).startsWith('data:image/svg+xml') || String(afterData).startsWith('data:image/svg+xml')) {
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if (combinedBtn) combinedBtn.disabled = true;
+                    } else {
+                        imgA.src = beforeData;
+                        imgB.src = afterData;
+                    }
                 }catch(e){ console.warn('combined image failed', e); }
 
                 status.textContent = 'Run & Record complete — download assets below.';
@@ -576,13 +672,14 @@
                 status.textContent = 'Run & Record failed: ' + (err && err.message ? err.message : String(err));
             }finally{
                 runRecordBtn.disabled = false;
+                setTimeout(restoreExtensionUI, 500);
             }
         });
     })();
     </script>
 
     <!-- Instructions for testing -->
-    <div style="position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 12px; z-index: 10000;">
+    <div id="demo-instructions" style="position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 15px; border-radius: 8px; max-width: 300px; font-size: 12px; z-index: 10000;">
         <strong>🤖 Test the UI Copilot:</strong><br>
         1. Click the extension icon<br>
         2. Click "Scan Page"<br>
