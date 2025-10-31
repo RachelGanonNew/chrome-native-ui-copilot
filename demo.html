@@ -359,10 +359,12 @@
                 beforeImg.src = beforeData;
                 downloadBefore.href = beforeData;
 
-                status.textContent = 'Running fixes...';
+                status.textContent = 'Running fixes (scan + apply)...';
                 // Try to run extension fix-all if available
                 if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
-                    await window.uiCopilot.fixAllIssues();
+                    const res = await window.uiCopilot.fixAllIssues();
+                    status.textContent = `Applied ${res.fixed}/${res.total} fixes…`;
+                    try { if ((window.uiCopilot.issues||[]).length) window.uiCopilot.highlightElement(0); } catch(e) {}
                 } else {
                     // Try messaging the extension via custom event for pages where extension is the content script
                     console.warn('uiCopilot not available in page context');
@@ -548,7 +550,9 @@
                 // apply fixes while recording
                 status.textContent = 'Applying fixes while recording...';
                 if (window.uiCopilot && typeof window.uiCopilot.fixAllIssues === 'function'){
-                    await window.uiCopilot.fixAllIssues();
+                    const res = await window.uiCopilot.fixAllIssues();
+                    status.textContent = `Recording… applied ${res.fixed}/${res.total}`;
+                    try { if ((window.uiCopilot.issues||[]).length) window.uiCopilot.highlightElement(0); } catch(e) {}
                 } else {
                     console.warn('uiCopilot not available in page context');
                 }
