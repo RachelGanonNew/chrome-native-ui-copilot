@@ -14,12 +14,22 @@ class DevToolsPanel {
     this.checkAIStatus();
   }
 
+  evalAsync(code) {
+    return new Promise((resolve) => {
+      try {
+        chrome.devtools.inspectedWindow.eval(code, (result, exceptionInfo) => {
+          resolve({ result, exceptionInfo });
+        });
+      } catch (e) {
+        resolve({ result: undefined, exceptionInfo: e });
+      }
+    });
+  }
+
   async checkAIStatus() {
     try {
-      const result = await chrome.devtools.inspectedWindow.eval(`
-        'ai' in window && 'languageModel' in window.ai
-      `);
-      document.getElementById('ai-status').textContent = result[0] ? '✅' : '⚠️';
+      const { result } = await this.evalAsync(`'ai' in window && 'languageModel' in window.ai`);
+      document.getElementById('ai-status').textContent = result ? '✅' : '⚠️';
     } catch (e) {
       document.getElementById('ai-status').textContent = '❌';
     }
@@ -31,26 +41,24 @@ class DevToolsPanel {
     scanBtn.disabled = true;
 
     try {
-      const result = await chrome.devtools.inspectedWindow.eval(`
-        (async () => {
-          if (window.uiCopilot) {
-            await window.uiCopilot.scanPage();
-            return {
-              issues: window.uiCopilot.issues,
-              stats: {
-                total: window.uiCopilot.issues.length,
-                high: window.uiCopilot.issues.filter(i => i.severity === 'high').length,
-                medium: window.uiCopilot.issues.filter(i => i.severity === 'medium').length,
-                low: window.uiCopilot.issues.filter(i => i.severity === 'low').length
-              }
-            };
-          }
-          return { issues: [], stats: { total: 0, high: 0, medium: 0, low: 0 } };
-        })()
-      `);
+      const { result } = await this.evalAsync(`(async () => {
+        if (window.uiCopilot) {
+          await window.uiCopilot.scanPage();
+          return {
+            issues: window.uiCopilot.issues,
+            stats: {
+              total: window.uiCopilot.issues.length,
+              high: window.uiCopilot.issues.filter(i => i.severity === 'high').length,
+              medium: window.uiCopilot.issues.filter(i => i.severity === 'medium').length,
+              low: window.uiCopilot.issues.filter(i => i.severity === 'low').length
+            }
+          };
+        }
+        return { issues: [], stats: { total: 0, high: 0, medium: 0, low: 0 } };
+      })()`);
 
-      this.issues = result[0].issues || [];
-      this.updateStats(result[0].stats);
+      this.issues = (result && result.issues) || [];
+      this.updateStats((result && result.stats) || { total: 0, high: 0, medium: 0, low: 0 });
       this.displayIssues();
     } catch (e) {
       console.error('Scan failed:', e);
@@ -91,27 +99,24 @@ class DevToolsPanel {
         await this.scanPage();
       }
 
-      const result = await chrome.devtools.inspectedWindow.eval(`
-        (async () => {
-          if (window.uiCopilot && window.uiCopilot.issues) {
-            let fixed = 0;
-            for (const issue of window.uiCopilot.issues) {
-              try {
-                if (typeof issue.fix === 'function') {
-                  issue.fix();
-                  fixed++;
-                }
-              } catch (e) {
-                console.error('Fix failed for issue:', issue.type, e);
+      const { result: fixResult } = await this.evalAsync(`(async () => {
+        if (window.uiCopilot && window.uiCopilot.issues) {
+          let fixed = 0;
+          for (const issue of window.uiCopilot.issues) {
+            try {
+              if (typeof issue.fix === 'function') {
+                issue.fix();
+                fixed++;
               }
+            } catch (e) {
+              console.error('Fix failed for issue:', issue.type, e);
             }
-            return { fixed, total: window.uiCopilot.issues.length };
           }
-          return { fixed: 0, total: 0 };
-        })()
-      `);
+          return { fixed, total: window.uiCopilot.issues.length };
+        }
+        return { fixed: 0, total: 0 };
+      })()`);
 
-      const fixResult = result[0];
       document.getElementById('fixed-issues').textContent = fixResult.fixed;
       
       if (fixResult.fixed > 0) {
@@ -166,9 +171,7 @@ class DevToolsPanel {
 
   async fixIssue(index) {
     try {
-      await chrome.devtools.inspectedWindow.eval(`
-        window.uiCopilot.issues[${index}].fix()
-      `);
+      await this.evalAsync(`window.uiCopilot && window.uiCopilot.issues && window.uiCopilot.issues[${index}] && window.uiCopilot.issues[${index}].fix && window.uiCopilot.issues[${index}].fix()`);
       
       this.generateCodeDiff(index);
       document.getElementById('fixed-issues').textContent = 
