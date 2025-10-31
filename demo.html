@@ -313,7 +313,11 @@
                             ctx.drawImage(img, 0, 0);
                             URL.revokeObjectURL(url);
                             const data = safeCanvasToDataURL(canvas);
-                            if (!data) return reject(new Error('Canvas export blocked by cross-origin content'));
+                            if (!data) {
+                                // Fallback: return the SVG data URL so we still show and allow download
+                                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+                                return resolve(svgDataUrl);
+                            }
                             resolve(data);
                         }catch(err){ URL.revokeObjectURL(url); reject(err); }
                     };
@@ -383,8 +387,14 @@
                         const bothBtn = document.getElementById('download-both-btn');
                         if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
                     };
-                    imgA.src = beforeData;
-                    imgB.src = afterData;
+                    // Skip combined if any snapshot is SVG data (cannot safely rasterize without taint)
+                    if (String(beforeData).startsWith('data:image/svg+xml') || String(afterData).startsWith('data:image/svg+xml')) {
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if (combinedBtn) combinedBtn.disabled = true;
+                    } else {
+                        imgA.src = beforeData;
+                        imgB.src = afterData;
+                    }
                 }catch(e){ console.warn('combined image failed', e); }
 
                 status.textContent = 'Demo complete — download images or use them in your Devpost.';
@@ -573,8 +583,13 @@
                         const bothBtn = document.getElementById('download-both-btn');
                         if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
                     };
-                    imgA.src = beforeData;
-                    imgB.src = afterData;
+                    if (String(beforeData).startsWith('data:image/svg+xml') || String(afterData).startsWith('data:image/svg+xml')) {
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if (combinedBtn) combinedBtn.disabled = true;
+                    } else {
+                        imgA.src = beforeData;
+                        imgB.src = afterData;
+                    }
                 }catch(e){ console.warn('combined image failed', e); }
 
                 status.textContent = 'Run & Record complete — download assets below.';
