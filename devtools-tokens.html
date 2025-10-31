@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 16px; background: #f8f9fa; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin: 6px 0; }
+    .row input { width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; }
+    button { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; }
+    .primary { background: #007bff; color: #fff; }
+    .secondary { background: #6c757d; color: #fff; }
+    .muted { color: #666; font-size: 12px; }
+    .header { display: flex; gap: 8px; align-items: center; }
+  </style>
+  </head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h2 style="margin:0;">Design Tokens</h2>
+      <button id="refresh" class="secondary">Refresh</button>
+      <button id="toggle" class="secondary">Design System: …</button>
+      <span id="status" class="muted"></span>
+    </div>
+    <p class="muted">Detected CSS variables on :root. Edit values and apply to the inspected page.</p>
+  </div>
+
+  <div id="tokens" class="card"></div>
+
+  <div class="card">
+    <div class="row">
+      <input id="new-name" placeholder="--new-token-name" />
+      <input id="new-value" placeholder="#3366ff or rgb() or any CSS value" />
+      <button id="add" class="primary">Add/Update</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Aliases (per-domain)</h3>
+    <p class="muted">Map semantic names to CSS variables. Used first when Design System mode is on.</p>
+    <div id="aliases"></div>
+    <div class="row">
+      <input id="alias-name" placeholder="primary | text | background" />
+      <input id="alias-var" placeholder="--brand or --color-primary" />
+      <button id="alias-set" class="primary">Set Alias</button>
+    </div>
+  </div>
+
+  <script src="devtools-tokens.js"></script>
+</body>
+</html>
+

@@ -7,14 +7,16 @@
     "activeTab",
     "scripting",
     "storage",
-    "contextMenus",
-    "aiLanguageModelOriginTrial"
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "<all_urls>"
   ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["copilot.css"]
+      "js": ["content.js", "eyes-overlay.js", "visual-inspector.js", "cursor-agent.js"],
+      "css": ["copilot.css", "eyes-overlay.css", "visual-inspector.css", "cursor-agent.css"]
     }
   ],
   "background": {
@@ -38,7 +40,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["copilot.css", "devtools.html"],
+      "resources": ["copilot.css", "devtools.html", "test-ai.js"],
       "matches": ["<all_urls>"]
     }
   ],

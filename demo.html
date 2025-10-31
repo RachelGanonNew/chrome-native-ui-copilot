@@ -198,7 +198,12 @@
         document.querySelectorAll('.button').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                alert('Button clicked! (Poor UX - should use better feedback)');
+                // Check if extension is loaded
+                if (typeof window.uiCopilot !== 'undefined') {
+                    window.uiCopilot.showNotification('Button clicked! Extension is working.');
+                } else {
+                    alert('Extension not loaded. Make sure it\'s enabled in chrome://extensions/');
+                }
             });
         });
 
@@ -208,6 +213,372 @@
             newContent.innerHTML = '<p style="color: #ddd; font-size: 10px;">Dynamically loaded content that causes layout shift!</p>';
             document.querySelector('.content').appendChild(newContent);
         }, 3000);
+    </script>
+
+    <!-- Demo control panel: run demo and capture before/after -->
+    <div id="demo-controls" style="position: fixed; top: 20px; right: 20px; background: #111; color: #fff; padding: 12px; border-radius: 8px; z-index:10001; font-size:13px;">
+        <div style="margin-bottom:8px;font-weight:700;">Demo Runner</div>
+    <button id="run-demo-btn" style="padding:8px 10px;border-radius:6px;border:none;background:#007bff;color:#fff;cursor:pointer;margin-bottom:8px;">Run Demo</button>
+    <button id="run-record-btn" style="padding:8px 10px;border-radius:6px;border:none;background:#6610f2;color:#fff;cursor:pointer;margin-bottom:8px;margin-left:6px;">Run & Record</button>
+        <div id="demo-status" style="font-size:12px;opacity:0.9"></div>
+        <div id="demo-results" style="margin-top:8px;display:none;">
+            <div style="display:flex;gap:8px;">
+                <div>
+                    <div style="font-size:12px;margin-bottom:6px">Before</div>
+                    <a id="download-before" download="before.png"><img id="before-img" style="max-width:220px;border:1px solid #333"/></a>
+                </div>
+                <div>
+                    <div style="font-size:12px;margin-bottom:6px">After</div>
+                    <a id="download-after" download="after.png"><img id="after-img" style="max-width:220px;border:1px solid #333"/></a>
+                </div>
+            </div>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                <button id="download-combined-btn" style="padding:6px 8px;border-radius:6px;border:none;background:#28a745;color:#fff;cursor:pointer">Download Combined</button>
+                <button id="download-both-btn" style="padding:6px 8px;border-radius:6px;border:none;background:#6c757d;color:#fff;cursor:pointer">Download Both</button>
+                <button id="record-clip-btn" style="padding:6px 8px;border-radius:6px;border:none;background:#17a2b8;color:#fff;cursor:pointer">Record Clip</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Demo runner: captures before/after snapshots using SVG foreignObject and runs Fix All via uiCopilot
+    (function(){
+        const runBtn = document.getElementById('run-demo-btn');
+        const status = document.getElementById('demo-status');
+        const results = document.getElementById('demo-results');
+        const beforeImg = document.getElementById('before-img');
+        const afterImg = document.getElementById('after-img');
+        const downloadBefore = document.getElementById('download-before');
+        const downloadAfter = document.getElementById('download-after');
+
+        function cleanClone(docEl){
+            const clone = docEl.cloneNode(true);
+            // remove scripts and demo controls
+            clone.querySelectorAll('script, #demo-controls, #demo-status, #demo-results, #demo-modal, [id^="copilot-" ], [id^="ui-copilot" ], #copilot-visual-container, #copilot-eyes-container').forEach(n=>{
+                try{ n.remove(); }catch(e){}
+            });
+            // remove extension floating button if present
+            clone.querySelectorAll('[id^="copilot-autopilot-toggle"]').forEach(n=>n.remove());
+            return clone;
+        }
+
+        // Inline computed styles into the cloned DOM to improve SVG/PNG fidelity
+        function inlineComputedStyles(originalRoot, cloneRoot){
+            try{
+                const origEls = originalRoot.querySelectorAll('*');
+                const cloneEls = cloneRoot.querySelectorAll('*');
+                for(let i=0;i<origEls.length && i<cloneEls.length;i++){
+                    const o = origEls[i];
+                    const c = cloneEls[i];
+                    const cs = window.getComputedStyle(o);
+                    let cssText = '';
+                    for(let j=0;j<cs.length;j++){
+                        const prop = cs[j];
+                        try{
+                            const val = cs.getPropertyValue(prop);
+                            cssText += prop + ':' + val + ';';
+                        }catch(e){}
+                    }
+                    // Preserve existing inline style from the clone
+                    const existing = c.getAttribute('style') || '';
+                    c.setAttribute('style', existing + ';' + cssText);
+                }
+            }catch(e){ console.warn('inlineComputedStyles failed', e); }
+        }
+
+        function serializeToDataURL(el){
+            return new Promise((resolve, reject) => {
+                try{
+                    const rect = document.documentElement.getBoundingClientRect();
+                    const w = Math.max(document.documentElement.scrollWidth, rect.width);
+                    const h = Math.max(document.documentElement.scrollHeight, rect.height);
+                    const cloned = cleanClone(document.documentElement);
+                    // Inline computed styles for better rendering (best-effort)
+                    try{ inlineComputedStyles(document.documentElement, cloned); }catch(e){}
+                    const serialized = new XMLSerializer().serializeToString(cloned);
+                    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n`+
+                        `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>`+
+                        `<foreignObject width='100%' height='100%'>${serialized}</foreignObject></svg>`;
+
+                    const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
+                    const url = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload = function(){
+                        try{
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w; canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            URL.revokeObjectURL(url);
+                            resolve(canvas.toDataURL('image/png'));
+                        }catch(err){ URL.revokeObjectURL(url); reject(err); }
+                    };
+                    img.onerror = function(e){ URL.revokeObjectURL(url); reject(e); };
+                    img.src = url;
+                }catch(err){ reject(err); }
+            });
+        }
+
+        async function runDemo(){
+            results.style.display = 'none';
+            status.textContent = 'Capturing "before" snapshot...';
+            runBtn.disabled = true;
+            try{
+                const beforeData = await serializeToDataURL(document.documentElement);
+                beforeImg.src = beforeData;
+                downloadBefore.href = beforeData;
+
+                status.textContent = 'Running fixes...';
+                // Try to run extension fix-all if available
+                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
+                    await window.uiCopilot.scanPage();
+                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                } else {
+                    // Try messaging the extension via custom event for pages where extension is the content script
+                    console.warn('uiCopilot not available in page context');
+                }
+
+                status.textContent = 'Capturing "after" snapshot...';
+                // Allow a brief render pause
+                await new Promise(r=>setTimeout(r, 400));
+                const afterData = await serializeToDataURL(document.documentElement);
+                afterImg.src = afterData;
+                downloadAfter.href = afterData;
+
+                // create combined side-by-side image for easy sharing
+                try{
+                    const imgA = new Image();
+                    const imgB = new Image();
+                    imgA.onload = imgB.onload = function(){
+                        if(!imgA.width || !imgB.width) return;
+                        const cw = imgA.width + imgB.width;
+                        const ch = Math.max(imgA.height, imgB.height);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = cw; canvas.height = ch;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cw,ch);
+                        ctx.drawImage(imgA, 0, 0);
+                        ctx.drawImage(imgB, imgA.width, 0);
+                        const combined = canvas.toDataURL('image/png');
+                        // create a temporary link for combined download
+                        let combinedLink = document.getElementById('download-combined');
+                        if(!combinedLink){
+                            combinedLink = document.createElement('a');
+                            combinedLink.id = 'download-combined';
+                            combinedLink.download = 'before-after.png';
+                            combinedLink.style.display = 'none';
+                            document.body.appendChild(combinedLink);
+                        }
+                        combinedLink.href = combined;
+                        // wire combined button
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if(combinedBtn){ combinedBtn.onclick = ()=> combinedLink.click(); }
+                        // wire download both to trigger two downloads sequentially
+                        const bothBtn = document.getElementById('download-both-btn');
+                        if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
+                    };
+                    imgA.src = beforeData;
+                    imgB.src = afterData;
+                }catch(e){ console.warn('combined image failed', e); }
+
+                status.textContent = 'Demo complete — download images or use them in your Devpost.';
+                results.style.display = 'block';
+            }catch(err){
+                console.error('Demo failed', err);
+                status.textContent = 'Demo failed: ' + (err && err.message ? err.message : String(err));
+            }finally{
+                runBtn.disabled = false;
+            }
+        }
+
+        runBtn.addEventListener('click', runDemo);
+
+        // Record a short WebM clip: capture frames at low fps and record via MediaRecorder
+        const recordBtn = document.getElementById('record-clip-btn');
+        recordBtn.addEventListener('click', async () => {
+            recordBtn.disabled = true;
+            status.textContent = 'Recording clip...';
+            try{
+                const duration = 4000; // ms
+                const fps = 5;
+                const interval = 1000 / fps;
+                const rect = document.documentElement.getBoundingClientRect();
+                const w = Math.max(document.documentElement.scrollWidth, rect.width);
+                const h = Math.max(document.documentElement.scrollHeight, rect.height);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+
+                const stream = canvas.captureStream(fps);
+                const recorder = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+                const chunks = [];
+                recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+
+                recorder.start();
+
+                const start = performance.now();
+                await new Promise((resolve) => {
+                    const tick = async () => {
+                        const now = performance.now();
+                        if (now - start >= duration) { resolve(); return; }
+                        try{
+                            // draw current page snapshot
+                            const data = await serializeToDataURL(document.documentElement);
+                            await new Promise((r,rej)=>{
+                                const img = new Image();
+                                img.onload = ()=>{ ctx.clearRect(0,0,w,h); ctx.drawImage(img,0,0); r(); };
+                                img.onerror = rej;
+                                img.src = data;
+                            });
+                        }catch(e){ console.warn('frame capture failed', e); }
+                        setTimeout(tick, interval);
+                    };
+                    tick();
+                });
+
+                recorder.stop();
+                // wait for stop
+                await new Promise((res) => { recorder.onstop = res; });
+
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url; link.download = 'demo-clip.webm';
+                link.textContent = 'Download Clip';
+                link.style.display = 'inline-block';
+                link.style.marginLeft = '8px';
+                document.getElementById('demo-results').appendChild(link);
+
+                status.textContent = 'Recording complete — download the clip below.';
+            }catch(err){
+                console.error('recording failed', err);
+                status.textContent = 'Recording failed: ' + (err && err.message ? err.message : String(err));
+            }finally{
+                recordBtn.disabled = false;
+            }
+        });
+
+        // One-click run & record: capture before, record while applying fixes, capture after
+        const runRecordBtn = document.getElementById('run-record-btn');
+        runRecordBtn.addEventListener('click', async () => {
+            runRecordBtn.disabled = true;
+            status.textContent = 'Preparing run & record...';
+            try{
+                // before
+                status.textContent = 'Capturing before snapshot...';
+                const beforeData = await serializeToDataURL(document.documentElement);
+                beforeImg.src = beforeData; downloadBefore.href = beforeData;
+
+                // recorder setup
+                status.textContent = 'Starting recording...';
+                const duration = 4500; // ms
+                const fps = 6;
+                const interval = 1000 / fps;
+                const rect = document.documentElement.getBoundingClientRect();
+                const w = Math.max(document.documentElement.scrollWidth, rect.width);
+                const h = Math.max(document.documentElement.scrollHeight, rect.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                const stream = canvas.captureStream(fps);
+                const recorder = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+                const chunks = [];
+                recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+                recorder.start();
+
+                // frame capture loop
+                let running = true;
+                const startTime = performance.now();
+                (async function frameLoop(){
+                    while (running && (performance.now() - startTime) < duration) {
+                        try{
+                            const data = await serializeToDataURL(document.documentElement);
+                            await new Promise((r,rej)=>{
+                                const img = new Image();
+                                img.onload = ()=>{ ctx.clearRect(0,0,w,h); ctx.drawImage(img,0,0); r(); };
+                                img.onerror = rej;
+                                img.src = data;
+                            });
+                        }catch(e){ console.warn('frame capture failed', e); }
+                        await new Promise(r=>setTimeout(r, interval));
+                    }
+                })();
+
+                // apply fixes while recording
+                status.textContent = 'Applying fixes while recording...';
+                if (window.uiCopilot && typeof window.uiCopilot.scanPage === 'function'){
+                    await window.uiCopilot.scanPage();
+                    (window.uiCopilot.issues || []).forEach(issue => { try{ issue.fix(); }catch(e){} });
+                } else {
+                    console.warn('uiCopilot not available in page context');
+                }
+
+                await new Promise(r => setTimeout(r, duration));
+                running = false;
+
+                recorder.stop();
+                await new Promise(res => { recorder.onstop = res; });
+
+                // after
+                status.textContent = 'Capturing after snapshot...';
+                await new Promise(r=>setTimeout(r, 300));
+                const afterData = await serializeToDataURL(document.documentElement);
+                afterImg.src = afterData; downloadAfter.href = afterData;
+
+                // finalize video
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url; link.download = 'demo-clip.webm';
+                link.textContent = 'Download Clip';
+                link.style.display = 'inline-block';
+                link.style.marginLeft = '8px';
+                document.getElementById('demo-results').appendChild(link);
+
+                // combined image
+                try{
+                    const imgA = new Image();
+                    const imgB = new Image();
+                    imgA.onload = imgB.onload = function(){
+                        if(!imgA.width || !imgB.width) return;
+                        const cw = imgA.width + imgB.width;
+                        const ch = Math.max(imgA.height, imgB.height);
+                        const c = document.createElement('canvas');
+                        c.width = cw; c.height = ch;
+                        const ct = c.getContext('2d');
+                        ct.fillStyle = '#fff'; ct.fillRect(0,0,cw,ch);
+                        ct.drawImage(imgA, 0, 0);
+                        ct.drawImage(imgB, imgA.width, 0);
+                        const combined = c.toDataURL('image/png');
+                        let combinedLink = document.getElementById('download-combined');
+                        if(!combinedLink){
+                            combinedLink = document.createElement('a');
+                            combinedLink.id = 'download-combined';
+                            combinedLink.download = 'before-after.png';
+                            combinedLink.style.display = 'none';
+                            document.body.appendChild(combinedLink);
+                        }
+                        combinedLink.href = combined;
+                        const combinedBtn = document.getElementById('download-combined-btn');
+                        if(combinedBtn){ combinedBtn.onclick = ()=> combinedLink.click(); }
+                        const bothBtn = document.getElementById('download-both-btn');
+                        if(bothBtn){ bothBtn.onclick = ()=>{ downloadBefore.click(); setTimeout(()=>downloadAfter.click(), 250); }; }
+                    };
+                    imgA.src = beforeData;
+                    imgB.src = afterData;
+                }catch(e){ console.warn('combined image failed', e); }
+
+                status.textContent = 'Run & Record complete — download assets below.';
+                results.style.display = 'block';
+            }catch(err){
+                console.error('Run & Record failed', err);
+                status.textContent = 'Run & Record failed: ' + (err && err.message ? err.message : String(err));
+            }finally{
+                runRecordBtn.disabled = false;
+            }
+        });
+    })();
     </script>
 
     <!-- Instructions for testing -->

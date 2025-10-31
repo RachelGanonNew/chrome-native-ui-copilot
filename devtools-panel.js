@@ -86,28 +86,45 @@ class DevToolsPanel {
     btn.disabled = true;
 
     try {
-      await chrome.devtools.inspectedWindow.eval(`
+      // First scan for issues if none exist
+      if (this.issues.length === 0) {
+        await this.scanPage();
+      }
+
+      const result = await chrome.devtools.inspectedWindow.eval(`
         (async () => {
           if (window.uiCopilot && window.uiCopilot.issues) {
             let fixed = 0;
             for (const issue of window.uiCopilot.issues) {
               try {
-                issue.fix();
-                fixed++;
+                if (typeof issue.fix === 'function') {
+                  issue.fix();
+                  fixed++;
+                }
               } catch (e) {
-                console.error('Fix failed:', e);
+                console.error('Fix failed for issue:', issue.type, e);
               }
             }
-            return fixed;
+            return { fixed, total: window.uiCopilot.issues.length };
           }
-          return 0;
+          return { fixed: 0, total: 0 };
         })()
       `);
 
-      document.getElementById('fixed-issues').textContent = this.issues.length;
-      this.generateCodeDiffs();
+      const fixResult = result[0];
+      document.getElementById('fixed-issues').textContent = fixResult.fixed;
+      
+      if (fixResult.fixed > 0) {
+        this.generateCodeDiffs();
+        // Show success notification
+        this.showNotification(`✅ Fixed ${fixResult.fixed} out of ${fixResult.total} issues!`);
+      } else {
+        this.showNotification('⚠️ No issues found to fix. Try scanning first.');
+      }
+      
     } catch (e) {
       console.error('Auto-fix failed:', e);
+      this.showNotification('❌ Auto-fix failed. Check console for details.');
     }
 
     btn.textContent = '⚡ Auto-Fix All';
@@ -200,6 +217,28 @@ min-height: 44px;`;
     });
   }
 
+  showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 4px;
+      z-index: 10000;
+      font-size: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
   exportReport() {
     const report = {
       timestamp: new Date().toISOString(),
@@ -212,7 +251,7 @@ min-height: 44px;`;
       })),
       stats: {
         total: this.issues.length,
-        fixed: parseInt(document.getElementById('fixed-issues').textContent),
+        fixed: parseInt(document.getElementById('fixed-issues').textContent) || 0,
         lighthouseScore: this.lighthouseScore
       }
     };

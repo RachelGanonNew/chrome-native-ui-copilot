@@ -1,6 +1,6 @@
 # 🤖 Chrome Native UI Copilot
 
-**AI-powered UI issue detection and auto-fix using Chrome's built-in Gemini Nano**
+**AI-powered UI issue detection, auto-fix, and shareable macros using Chrome's built-in Gemini Nano**
 
 *Winner submission for Google Chrome AI Challenge 2025* 🏆
 
@@ -9,6 +9,8 @@
 🕵️ **Real-time UI Audit** – Detects layout issues, accessibility gaps, and visual bugs on any page
 
 ⚡ **Instant Auto-Fixes** – One click applies suggestions, improving the page and producing developer-ready diffs
+
+📦 **Export/Replay Fixes (Live UI Macros)** – Every applied fix is captured as a portable JSON macro you can export, share, and replay on any page or state for reproducible results
 
 🧩 **Deep Chrome Integration** – Context-menu actions, DevTools panel, and overlay annotations for seamless workflow
 
@@ -44,6 +46,7 @@
 3. **Click "Scan Page"** to detect issues
 4. **Review issues** in the popup panel
 5. **Click "Fix"** next to any issue to apply corrections
+6. Optional: **Export Fixes** to JSON; later **Replay Fixes** to reproduce changes
 
 ### Advanced Features
 
@@ -112,6 +115,17 @@
 - **DevTools Integration** (`devtools-panel.js`) - Professional developer interface
 - **Popup Interface** (`popup.js`) - Quick access controls
 - **AI Integration** - Gemini Nano for advanced issue detection
+  
+### Design Tokens & Aliases (DevTools)
+- Dedicated DevTools panel to view and edit detected `:root` CSS variables.
+- Toggle Design System mode to map fixes to tokens via `var(--token)`.
+- Define per-domain aliases (e.g., `primary` → `--brand`) for consistent theming.
+
+### Fix Macros (Export/Replay)
+- All inline style changes and DOM adjustments performed by the copilot are recorded with selectors and before/after values.
+- Use `Export Fixes` to download a JSON file of the session’s changes.
+- Use `Replay Fixes` to apply a previously exported JSON to the current page.
+- Guarantees reproducibility for demos, QA, and handoff to developers.
 
 ### AI System Prompt
 The extension uses a sophisticated system prompt that analyzes elements for:
@@ -136,6 +150,7 @@ The extension uses a sophisticated system prompt that analyzes elements for:
 2. This page contains intentional UI/UX issues
 3. Use the extension to detect and fix problems
 4. See real-time improvements!
+5. Export fixes → reload → Replay fixes → verify identical improvements
 
 ### Test Cases
 The demo includes:

@@ -6,7 +6,9 @@ chrome.runtime.onInstalled.addListener(() => {
     issuesFound: 0,
     issuesFixed: 0,
     autoFix: false,
-    sensitivity: 'medium'
+    sensitivity: 'medium',
+    cursorAgentEnabled: false,
+    cursorAgentAutofix: false
   });
 
   // Create context menu
@@ -93,6 +95,81 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         issuesFound: (data.issuesFound || 0) + (message.issuesFound || 0),
         issuesFixed: (data.issuesFixed || 0) + (message.issuesFixed || 0)
       });
+    });
+  }
+  // Manage cursor agent global state
+  if (message.type === 'setCursorAgentEnabled') {
+    const enabled = !!message.enabled;
+    chrome.storage.local.set({ cursorAgentEnabled: enabled }, () => {
+      // Broadcast to all tabs
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(t => {
+          try {
+            chrome.scripting.executeScript({
+              target: { tabId: t.id },
+              func: (en) => {
+                try {
+                  if (window.cursorAgent && en) window.cursorAgent.enable();
+                  if (window.cursorAgent && !en) window.cursorAgent.disable();
+                } catch (e) {}
+              },
+              args: [enabled]
+            }).catch(() => {});
+          } catch (e) {}
+        });
+      });
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.type === 'toggleCursorAgent') {
+    chrome.storage.local.get(['cursorAgentEnabled'], (data) => {
+      const cur = !!data.cursorAgentEnabled;
+      const next = !cur;
+      chrome.storage.local.set({ cursorAgentEnabled: next }, () => {
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(t => {
+            try {
+              chrome.scripting.executeScript({
+                target: { tabId: t.id },
+                func: (en) => {
+                  try {
+                    if (window.cursorAgent && en) window.cursorAgent.enable();
+                    if (window.cursorAgent && !en) window.cursorAgent.disable();
+                  } catch (e) {}
+                },
+                args: [next]
+              }).catch(() => {});
+            } catch (e) {}
+          });
+        });
+      });
+      sendResponse({ enabled: next });
+    });
+    return true;
+  }
+
+  if (message.type === 'getCursorAgentState') {
+    chrome.storage.local.get(['cursorAgentEnabled','cursorAgentAutofix'], data => {
+      sendResponse({ enabled: !!data.cursorAgentEnabled, autofix: !!data.cursorAgentAutofix });
+    });
+    return true;
+  }
+});
+
+// Ensure stored cursorAgentEnabled value is applied to tabs when they finish loading
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    chrome.storage.local.get(['cursorAgentEnabled'], data => {
+      if (data && data.cursorAgentEnabled) {
+        try {
+          chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => { try { window.cursorAgent && window.cursorAgent.enable(); } catch(e){} }
+          }).catch(() => {});
+        } catch (e) {}
+      }
     });
   }
 });

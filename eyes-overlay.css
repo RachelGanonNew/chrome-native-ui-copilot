@@ -1,0 +1,11 @@
+#copilot-eyes-container{position:fixed;right:20px;top:20px;z-index:2147483646;pointer-events:auto}
+#copilot-eyes-container.temp-ignore{pointer-events:none}
+#copilot-eyes{display:flex;gap:8px;align-items:center;justify-content:center;opacity:0;transform:scale(0.95);transition:opacity .18s,transform .18s}
+#copilot-eyes-container.visible #copilot-eyes{opacity:1;transform:scale(1)}
+.eye{width:48px;height:48px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,0.15);position:relative;overflow:hidden}
+.eye.left{margin-right:4px}
+.pupil{width:16px;height:16px;background:#111;border-radius:50%;transition:transform .08s ease}
+.pupil.flash{box-shadow:0 0 0 6px rgba(0,123,255,0.25)}
+#copilot-eyes-container{user-select:none}
+/* Accessibility: hide from screen readers but keep visible */
+#copilot-eyes[aria-hidden="true"]{pointer-events:none}

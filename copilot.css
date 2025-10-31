@@ -234,3 +234,27 @@
 .issue-item.critical .issue-content strong {
   color: #dc3545;
 }
+
+#ai-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #e9ecef;
+  color: #495057;
+  margin: 0 8px;
+}
+
+#ai-status:contains('✅') {
+  background: #d4edda;
+  color: #155724;
+}
+
+#ai-status:contains('❌') {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+#ai-status:contains('⚠️') {
+  background: #fff3cd;
+  color: #856404;
+}
