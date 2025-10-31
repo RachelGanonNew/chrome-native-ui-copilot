@@ -58,6 +58,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const designSystemBtn = document.getElementById('designsystem-btn');
   const savePackBtn = document.getElementById('savepack-btn');
   const applyPackBtn = document.getElementById('applypack-btn');
+  const startDemoBtn = document.getElementById('start-demo-btn');
+  const recordBtn = document.getElementById('record-btn');
 
   visualBtn.onclick = async () => {
     visualBtn.textContent = 'Toggling...';
@@ -227,6 +229,77 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     } catch (e) {
       console.error('apply pack failed', e);
+    }
+  };
+
+  // Start guided demo on current page
+  startDemoBtn.onclick = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.uiCopilot?.startGuidedDemo()
+      });
+    } catch (e) {
+      console.error('start demo failed', e);
+    }
+  };
+
+  // Record demo: capture current tab while running guided demo
+  recordBtn.onclick = async () => {
+    try {
+      recordBtn.textContent = 'Recording…';
+      recordBtn.disabled = true;
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      // Start tab capture
+      const stream = await new Promise((resolve, reject) => {
+        try {
+          chrome.tabCapture.capture({
+            audio: false,
+            video: true,
+            videoConstraints: {
+              mandatory: { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 30 }
+            }
+          }, s => s ? resolve(s) : reject(new Error('tabCapture failed')));
+        } catch (e) { reject(e); }
+      });
+
+      const chunks = [];
+      const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.start(250);
+
+      // Kick off guided demo in the page
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.uiCopilot?.startGuidedDemo()
+      });
+
+      // Stop after ~80s
+      setTimeout(async () => {
+        try { rec.stop(); } catch (e) {}
+        try { stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+
+        // assemble and download
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ui-copilot-demo.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+      }, 80000);
+    } catch (e) {
+      console.error('record failed', e);
+      alert('Recording failed: ' + e.message);
+    } finally {
+      setTimeout(() => {
+        recordBtn.textContent = 'Record Demo';
+        recordBtn.disabled = false;
+      }, 1000);
     }
   };
 
